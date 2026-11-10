@@ -19,6 +19,8 @@ The annotation scheme includes nine labels:
 
 The guidelines describe label definitions, annotation criteria, and examples.
 
+**Download:** [Face Act Annotation Guidelines](Face_Acts_Annotation_Guideline.pdf)
+
 ## 2. Document-Level Politeness Annotation Guidelines
 
 Guidelines for rating emails along three dimensions:
@@ -28,6 +30,8 @@ Guidelines for rating emails along three dimensions:
 3. Negative Face Saving
 
 Each dimension is assessed on a five-point scale.
+
+**Download:** [Politeness Scoring Annotation Guidelines](Politeness_Scoring_Annotation_Guidelines.pdf)
 
 ## 3. Synthetic Corpus Generation
 
@@ -44,4 +48,6 @@ The prompts used to generate and paraphrase the synthetic emails will be documen
 
 ## Availability
 
-The annotation guidelines and generation prompts will be uploaded as separate files.
+The Face Act and document-level politeness annotation guidelines are publicly available in this directory.
+
+The generation prompts and additional supporting documentation will be added separately.
