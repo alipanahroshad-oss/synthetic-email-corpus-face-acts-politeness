@@ -23,10 +23,10 @@ The same data split is maintained across experiments.
 We evaluate five configurations:
 
 1. Sentence classification — No Context
-2. Sentence classification — current-email history Mail
-3. Sentence classification — full paired-email context Pair
-4. Sequence Labeling — current-email history Mail
-5. Sequence Labeling — full paired-email context Pair
+2. Sentence classification — current-email history (Mail)
+3. Sentence classification — full paired-email context (Pair)
+4. Sequence Labeling — current-email history (Mail)
+5. Sequence Labeling — full paired-email context (Pair)
 
 Backbones:
 - BERT: bert-base-uncased
