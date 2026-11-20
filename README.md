@@ -43,7 +43,7 @@ We compare BERT with a LoRA-adapted LLaMA 3.2-1B across five configurations:
 | Sequence labelling | Current-email (Mail) |
 | Sequence labelling | Paired-email history (Pair) |
 
-Contextual sentence classification predicts the FA labels of one target sentence at a time. In the Pair setting, reply targets also receive the initiating request. Sequence labelling encodes multiple sentences together and produces a separate FA prediction for each sentence.
+In contextual sentence classification, each input contains a target sentence and its available history. In the Mail setting, this history consists of earlier sentences in the same email. In the Pair setting, reply targets also receive the initiating request, while request targets use only their own email history. In sequence labelling, the model encodes the current email (Mail) or the Paired-email history (Pair) in a single forward pass and predicts a set of FA labels for each sentence.
 
 ### Overall Politeness Regression (OPR)
 
