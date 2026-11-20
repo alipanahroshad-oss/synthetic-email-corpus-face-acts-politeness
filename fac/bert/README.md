@@ -73,9 +73,9 @@ Each configuration searches 36 hyperparameter combinations per training seed.
 
 ## Model Selection and Evaluation
 
-For each checkpoint, we select a single decision threshold shared across all nine FA labels by maximizing validation micro-F1. We evaluate thresholds from 0.05 to 0.95 in steps of 0.01. We then evaluate the selected configuration and checkpoint on the fixed test set using the selected threshold.
+For each checkpoint, we evaluate thresholds from 0.05 to 0.95 in steps of 0.01 and select the threshold that maximizes validation micro-F1. This threshold is shared across all nine FA labels. For each training seed and FAC configuration, we select the checkpoint and hyperparameter setting with the highest validation micro-F1, then evaluate on the fixed test set using the selected threshold.
 
-We report micro-F1, micro-precision, and micro-recall overall and separately for request and reply sentences. The scripts also produce class-wise results.
+We report micro-F1, micro-precision, and micro-recall overall and separately for request and reply sentences. The scripts also produce class-wise results. The paper reports means and standard errors across the five training seeds.
 
 ## Running the Experiments
 
