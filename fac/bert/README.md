@@ -27,11 +27,11 @@ Five configurations are implemented:
 
 ### Context Definitions
 
-- **No Context:** Only the target sentence is used.
-- **Sentence — Mail:** The target sentence is classified using preceding sentences from the same email.
-- **Sentence — Pair:** Request targets use their preceding request sentences; reply targets additionally use the full request email.
-- **Sequence Labeling — Mail:** Sentences within an email are jointly encoded and classified.
-- **Sequence Labeling — Pair:** The request and reply are jointly encoded and classified.
+- **Sentence — No Context.** BERT predicts the FA labels of the target sentence using only that sentence.
+- **Sentence — Mail.** The input contains the target sentence and the preceding sentences from the same email.
+- **Sentence — Pair.** Request targets use the same context as in Mail. Reply targets use both the initiating request and the preceding sentences from their own reply.
+- **Sequence Labeling — Mail.** BERT encodes the sentences of one email together and predicts a set of FA labels for each sentence.
+- **Sequence Labeling — Pair.** BERT encodes the request followed by its reply and predicts a set of FA labels for each sentence in both emails.
 
 ## Data
 
