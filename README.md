@@ -6,60 +6,72 @@ Companion repository for the extended manuscript submitted to *IEEE Access*.
 
 ## Overview
 
-This repository accompanies our research on computational politeness grounded in Brown and Levinson's politeness theory.
+We introduce a synthetic corpus of long-form request–reply emails grounded in Brown and Levinson's politeness theory. The corpus is manually annotated with sentence-level Face Acts (FAs) and document-level politeness scores.
 
-We introduce a synthetic corpus of long-form request–reply email conversations, manually annotated with sentence-level Face Acts (FAs) and document-level politeness scores.
+We investigate two questions:
 
-Our research investigates two questions: whether conversational context improves sentence-level Face Act Classification (FAC), and whether representations derived from predicted Face Acts complement text-based models for Overall Politeness Regression (OPR).
+1. Does conversational context improve Face Act Classification (FAC)?
+2. Do representations derived from predicted Face Acts complement text-based models for Overall Politeness Regression (OPR)?
 
 ## Dataset
 
-The corpus consists of **480 synthetic emails**, including 240 requests and 240 replies, comprising **2,124 sentences**.
+The corpus contains **480 synthetic English-language emails**: 240 requests and 240 replies, comprising **2,124 sentences**. The emails were generated using GPT-4o from Enron-derived topics.
 
-Sentence-level annotations use nine Face Act labels:
+Sentence-level annotation is multi-label. A sentence can receive more than one of the nine FA labels:
 
 `HNeg+`, `HNeg-`, `HPos+`, `HPos-`, `SNeg+`, `SNeg-`, `SPos+`, `SPos-`, and `Neutral`.
 
-Document-level politeness is evaluated along three dimensions:
+Each email is scored along three politeness dimensions:
 
 - Directness vs. Indirectness
 - Positive Face Saving
 - Negative Face Saving
 
-Overall Politeness is defined as the average of these dimensions.
+Overall Politeness is the average of these three scores.
 
 ## Experimental Framework
 
 ### Face Act Classification (FAC)
 
-We investigate context-agnostic and context-sensitive models using BERT and LLaMA 3.2-1B with LoRA.
+We compare BERT with a LoRA-adapted LLaMA 3.2-1B across five configurations:
 
-Five experimental configurations compare sentence-level classification and sequence labeling with different amounts of conversational context.
+| Modelling approach | Context |
+|---|---|
+| Sentence classification | Target sentence only |
+| Contextual sentence classification | Current-email history (Mail) |
+| Contextual sentence classification | Paired-email history (Pair) |
+| Sequence labelling | Current email (Mail) |
+| Sequence labelling | Request–reply pair (Pair) |
+
+Contextual sentence classification predicts the FA labels of one target sentence at a time. In the Pair setting, reply targets also receive the initiating request. Sequence labelling encodes multiple sentences together and produces a separate FA prediction for each sentence.
 
 ### Overall Politeness Regression (OPR)
 
-We investigate whether Face Act representations provide complementary information for document-level politeness prediction.
+We predict the three document-level politeness scores and examine whether FA features complement the email text. We compare text-only models with models combining text and either predicted FAs (PredFA) or human-annotated FAs (GoldFA).
 
-Our experiments compare text-only models with models incorporating predicted or gold Face Act features, alongside additional baselines and ablation studies.
+The experiments also evaluate FA-only models, misaligned PredFA features, and classical politeness and sentiment features. A category-wise permutation analysis examines how individual predicted and gold FA categories contribute to OPR.
 
 ## Relationship to Previous Work
 
-An earlier version of this research was published in **Findings of EMNLP 2026**.
+The *Findings of EMNLP 2026* publication introduced the corpus, the annotation scheme, and the initial BERT-based FAC and OPR experiments.
 
 [Read the EMNLP 2026 paper](https://aclanthology.org/2026.findings-emnlp.22/)
 
-The journal manuscript extends the conference work with LLaMA-based experiments, systematic hyperparameter searches, multiple training runs, statistical comparisons, and additional ablation analyses.
+The journal manuscript extends this work by:
 
-**This repository contains the extended journal implementation and is separate from the original EMNLP codebase.**
+- Comparing BERT and LLaMA across five FAC configurations and for document-level OPR.
+- Conducting systematic hyperparameter grid searches and comparing the backbones using individual 95% Welch confidence intervals across five training runs per backbone on a fixed test partition.
+- Extending the GoldFA, PredFA-only, and misaligned-PredFA evaluations to both backbones, adding classical politeness and sentiment baselines, and examining individual FA categories through permutation analysis.
+- Expanding the sentence-level naturalness evaluation from 124 sentences assessed by one annotator to 324 sentences assessed by two annotators, with inter-annotator agreement reported for naturalness ratings and human-versus-AI source judgments.
 
 ## Reproducibility
 
-The repository is being prepared to provide the implementation, experimental configurations, and reproducibility instructions for the extended study.
+The manuscript describes the group-aware training, validation, and test split, the hyperparameter search budgets, and the validation-based selection criteria. Supplementary Appendix F, Table II, lists the hyperparameter search grids for FAC and OPR.
 
 ## Limitations
 
-The corpus consists of synthetic English-language emails. All reported modeling experiments are conducted in this controlled setting, and generalization to human-written workplace communication remains to be established.
+All reported FAC and OPR experiments use the synthetic English-language corpus. Generalization to human-written workplace emails remains to be established.
 
 ## Citation
 
-The journal manuscript is currently under review. Citation information will be updated following publication.
+The journal manuscript has been submitted to *IEEE Access*. Citation information will be updated following publication.
