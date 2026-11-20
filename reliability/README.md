@@ -1,228 +1,68 @@
 # Inter-Annotator Agreement and Reliability Analysis
 
-This directory contains the implementations used to evaluate inter-annotator agreement for the corpus presented in:
+This directory contains the notebooks used to assess annotation reliability for **A Synthetic Email Corpus Annotated with Brown and Levinson's Face Acts and Document-Level Politeness**.
 
-**A Synthetic Email Corpus Annotated with Brown and Levinson's Face Acts and Document-Level Politeness**
+The analyses use the individual judgments of three annotators (Admin, Brianna, and Amber). We compute Krippendorff's alpha at two annotation levels.
 
-We assess annotation reliability at two levels:
+| Annotation task | Unit | Disagreement measure | Notebook |
+|---|---|---|---|
+| Multi-label Face Act annotation | Sentence | Jaccard distance between label sets | `krippendorff_alpha_face_acts.ipynb` |
+| Politeness rating | Email | Squared difference between ratings, separately for each dimension | `krippendorff_alpha_politeness.ipynb` |
 
-1. **Sentence-level Face Act annotation**
-2. **Document-level politeness annotation**
+Both notebooks calculate agreement as $\alpha = 1 - D_o/D_e$, where $D_o$ is observed disagreement and $D_e$ is expected disagreement.
 
-Agreement is evaluated using Krippendorff's alpha, with distance functions appropriate to each annotation task.
+## Sentence-Level Face Act Agreement
 
-## Implementation
+**Input file:** `data/annotation/face_acts_annotators.csv`
 
-This directory contains two Jupyter notebooks:
+**Annotation columns:** `FaceActsAdmin`, `FaceActsBrianna`, `FaceActsAmber`
 
-| Notebook | Description |
-|---|---|
-| `krippendorff_alpha_face_acts.ipynb` | Computes Krippendorff's alpha for multi-label sentence-level Face Act annotations |
-| `krippendorff_alpha_politeness.ipynb` | Computes Krippendorff's alpha for document-level politeness ratings |
+Each annotator can assign one or more of nine Face Act labels to a sentence:
 
-Both analyses consider annotations from three annotators: Admin, Brianna, and Amber.
+`HNeg+`, `HNeg-`, `HPos+`, `HPos-`, `Neutral`, `SNeg+`, `SNeg-`, `SPos+`, `SPos-`
 
-## 1. Sentence-Level Face Act Reliability
+The notebook compares two annotators' label sets $A$ and $B$ using Jaccard distance:
 
-**Notebook:** `krippendorff_alpha_face_acts.ipynb`
-
-### Annotation Scheme
-
-The sentence-level annotation task uses nine Face Act labels:
-
-- HNeg+
-- HNeg-
-- HPos+
-- HPos-
-- Neutral
-- SNeg+
-- SNeg-
-- SPos+
-- SPos-
-
-Since a sentence may receive more than one Face Act label, this task is treated as a multi-label annotation problem.
-
-### Agreement Metric
-
-We compute Krippendorff's alpha using Jaccard set distance.
-
-For two annotation sets A and B, Jaccard distance is defined as:
-
-\[
+$$
 d(A,B) = 1 - \frac{|A \cap B|}{|A \cup B|}
-\]
+$$
 
-The implementation measures disagreement between annotators' sets of Face Act labels rather than treating each label combination as an unrelated category.
+Identical sets have distance zero, disjoint sets have distance one, and partial overlap gives an intermediate value. The analysis includes sentences with at least two nonempty annotations. An explicit `Neutral` label counts as a valid annotation.
 
-Krippendorff's alpha is calculated as:
+The notebook reports:
 
-\[
-\alpha = 1 - \frac{D_o}{D_e}
-\]
+- Krippendorff's alpha using Jaccard distance, together with observed and expected disagreement.
+- The percentage of included sentences for which at least one annotator assigned multiple labels.
+- The exact consensus rate, defined as the percentage of included sentences for which all available annotators assigned the same label set.
 
-where:
+## Document-Level Politeness Agreement
 
-- \(D_o\) is observed disagreement.
-- \(D_e\) is expected disagreement.
+**Input file:** `data/annotation/480email_politeness_scores_of_the_annotators.csv`
 
-### Input Dataset
+The notebook computes a separate Krippendorff's alpha for each politeness dimension using the individual annotator columns below.
 
-`data/annotation/face_acts_annotators.csv`
+| Politeness dimension | Admin | Brianna | Amber |
+|---|---|---|---|
+| Directness vs. Indirectness | `Directness_vs_Indirectness_admin` | `Directness_vs_Indirectness_Brianna` | `Directness_vs_Indirectness_Amber` |
+| Positive Face Saving | `Structural_Politeness_and_Politeness_Markers_admin` | `Structural_Politeness_and_Politeness_Markers_Brianna` | `Structural_Politeness_and_Politeness_Markers_Amber` |
+| Negative Face Saving | `Tone_and_Overall_Consideration_admin` | `Tone_and_Overall_Consideration_Brianna` | `Tone_and_Overall_Consideration_Amber` |
 
-The notebook reads the following annotation columns:
+For two ratings $a$ and $b$ on the same email and dimension, interval disagreement is $(a-b)^2$. A two-point difference therefore contributes more disagreement than a one-point difference.
 
-- `FaceActsAdmin`
-- `FaceActsBrianna`
-- `FaceActsAmber`
-
-Missing or empty annotations are excluded. Items with at least two valid annotations are included in the reliability calculation.
-
-### Reported Statistics
-
-The notebook computes:
-
-- Krippendorff's alpha using Jaccard set distance
-- Observed disagreement
-- Expected disagreement
-- Proportion of items containing at least one multi-label annotation
-- Exact annotation-set consensus rate
-
-The calculations are implemented directly in the notebook.
-
-## 2. Document-Level Politeness Reliability
-
-**Notebook:** `krippendorff_alpha_politeness.ipynb`
-
-### Annotation Scheme
-
-Document-level politeness is evaluated along three dimensions:
-
-1. **Directness**
-2. **Positive Face**
-3. **Negative Face**
-
-### Politeness Dimensions and Dataset Columns
-
-The three dimensions correspond to the following dataset columns:
-
-```python
-# "Directness": "Directness_vs_Indirectness__GOLD"
-# "Positive Face": "Structural_Politeness_and_Politeness_Markers__GOLD"
-# "Negative Face": "Tone_and_Overall_Consideration__GOLD"
-```
-
-The notebook uses the original individual annotator ratings rather than the aggregated gold scores.
-
-### Agreement Metric
-
-We compute Krippendorff's alpha with an interval distance function.
-
-The interval distance between two ratings is:
-
-\[
-d(a,b) = (a-b)^2
-\]
-
-This distance reflects the magnitude of disagreement between numerical ratings.
-
-Krippendorff's alpha is computed separately for each politeness dimension.
-
-### Input Dataset
-
-`data/annotation/480email_politeness_scores_of_the_annotators.csv`
-
-The notebook reads the following columns:
-
-**Directness**
-
-- `Directness_vs_Indirectness_admin`
-- `Directness_vs_Indirectness_Brianna`
-- `Directness_vs_Indirectness_Amber`
-
-**Positive Face**
-
-- `Structural_Politeness_and_Politeness_Markers_admin`
-- `Structural_Politeness_and_Politeness_Markers_Brianna`
-- `Structural_Politeness_and_Politeness_Markers_Amber`
-
-**Negative Face**
-
-- `Tone_and_Overall_Consideration_admin`
-- `Tone_and_Overall_Consideration_Brianna`
-- `Tone_and_Overall_Consideration_Amber`
-
-### Reported Statistics
-
-For each dimension, the notebook reports:
-
-- Krippendorff's alpha with interval distance
-- Number of items containing at least two valid annotations
-
-Missing annotations are excluded from pairwise observed-disagreement calculations.
+For each dimension, the notebook reports interval Krippendorff's alpha and the number of emails with at least two valid ratings.
 
 ## Requirements
 
-The notebooks require Python and compatible versions of:
-
-- pandas
-- NumPy
-- Jupyter Notebook or JupyterLab
-
-The Face Act reliability implementation also uses Python's standard-library modules.
+The notebooks use Python, pandas, NumPy, and Jupyter Notebook or JupyterLab.
 
 ## Running the Notebooks
 
-The analyses can be executed independently.
+1. From the repository root, start JupyterLab:
 
-### 1. Prepare the Repository
+   ```bash
+   jupyter lab
+   ```
 
-Clone the repository and ensure that the annotation files are available under:
+2. Open either notebook in `reliability/`. The dataset paths above are relative to the repository root. If the kernel starts in `reliability/`, run `%cd ..` in a notebook cell before loading the data.
 
-`data/annotation/`
-
-### 2. Start Jupyter
-
-From the repository root, launch JupyterLab:
-
-```bash
-jupyter lab
-```
-
-Open the `reliability/` directory and select the notebook to execute.
-
-### 3. Check Dataset Paths
-
-The notebooks currently use dataset paths relative to the repository root:
-
-- `data/annotation/face_acts_annotators.csv`
-- `data/annotation/480email_politeness_scores_of_the_annotators.csv`
-
-The Python kernel's working directory must be the repository root for these paths to resolve.
-
-If the kernel starts inside `reliability/`, either change its working directory to the repository root or adjust the dataset paths to begin with `../data/annotation/`.
-
-### 4. Execute
-
-Run all cells in the selected notebook.
-
-The reliability statistics are printed in the notebook output.
-
-## Outputs
-
-The notebooks report their results directly without requiring separate output files.
-
-The computed statistics include:
-
-- Face Act agreement using Jaccard set distance
-- Document-level politeness agreement using interval distance
-- Additional descriptive reliability statistics
-
-Intermediate outputs are not included in the GitHub repository.
-
-## Reproducibility
-
-The notebooks provide the implementations used to assess human annotation reliability.
-
-They use the original annotator-level data available in `data/annotation/` and compute agreement separately for sentence-level Face Acts and document-level politeness dimensions.
-
-These analyses support the reliability assessment of the annotated corpus described in the journal manuscript.
+3. Run all cells in the selected notebook. Each notebook displays its results directly and can be run independently.
