@@ -7,7 +7,7 @@ The reference conditions are **Text**, which encodes the email using `meta-llama
 | Condition | What it evaluates |
 |---|---|
 | **Text + GoldFA** | Combines the LLaMA text representation with features derived from human-annotated FA labels. This oracle condition measures performance when gold FA labels are available. |
-| **PredFA-only** | Uses a multilayer perceptron (MLP) to predict politeness from aggregated PredFA features alone. |
+| **PredFA-only** | Predicts politeness from aggregated PredFA features alone. |
 | **Text + Misaligned PredFA** | Reuses the trained Text + PredFA model. At test time, each email receives another test email’s PredFA vector to assess whether predictions depend on matching the features to the correct email. |
 | **Text + Pol + Sent** | Combines the LLaMA text representation with classical politeness indicators and VADER sentiment features for comparison with Text + PredFA. |
 
