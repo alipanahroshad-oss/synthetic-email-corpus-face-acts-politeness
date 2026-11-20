@@ -6,7 +6,7 @@ This directory contains the BERT implementation for document-level Overall Polit
 
 We investigate whether features derived from predicted sentence-level Face Acts (PredFA) complement BERT representations of email text when predicting document-level politeness.
 
-Each email has three continuous target scores. The table maps the dimension names used in the paper to the corresponding dataset columns.
+Each email has three continuous target scores. The table maps the dimension names used in the paper to their dataset columns.
 
 | Politeness dimension | Dataset column |
 |---|---|
@@ -18,52 +18,45 @@ Each email has three continuous target scores. The table maps the dimension name
 
 **Script:** `OPR_BERT_PredFA_gridsearch.py`
 
-| Model family | Input and prediction method |
+| Model family | Inputs |
 |---|---|
-| **Text** | Encodes the email text with `bert-base-uncased` to predict politeness scores. |
-| **PredFA-only** | Uses a multilayer perceptron (MLP) to predict scores from the email’s aggregated PredFA features. |
-| **Text + PredFA** | Combines the BERT representation of the email with its aggregated PredFA features. |
-
-Each family supports two training modes:
-
-- **Multi-task regression:** One model predicts all three dimensions jointly.
-- **Single-task regression:** A separate model is trained for each dimension.
+| **Text** | The email text, encoded with `bert-base-uncased`. |
+| **PredFA-only** | Document-level PredFA features, passed to a multilayer perceptron (MLP). |
+| **Text + PredFA** | The BERT representation of the email combined with its document-level PredFA features. |
 
 ## Predicted Face Act Features
 
-A trained sentence-only BERT FAC classifier produces a probability for each of nine FA labels. A single threshold shared across all nine labels is selected by maximizing sentence-level micro-F1 on the validation set. This threshold converts the probabilities into binary predictions.
+A trained sentence-only BERT FAC classifier produces a probability for each of nine FA labels. A single threshold, shared across the labels, is selected by maximizing sentence-level micro-F1 on the validation set. The script applies this threshold to obtain binary predictions.
 
 For each email, the script counts how many sentences receive each label. A sentence with multiple predicted labels contributes to each corresponding count.
 
 `HNeg+`, `HNeg-`, `HPos+`, `HPos-`, `Neutral`, `SNeg+`, `SNeg-`, `SPos+`, `SPos-`
 
-The nine counts and four aggregates form a 13-dimensional document representation (HSPT-13):
+The nine counts and four aggregates form a 13-dimensional document representation (HSPT-13).
 
 | Aggregate | Definition |
 |---|---|
 | `sum_H` | Total count of the four hearer-oriented FA labels. |
 | `sum_S` | Total count of the four speaker-oriented FA labels. |
-| `sum_praise` | Total count of the four face-saving (`+`) labels: `HNeg+`, `HPos+`, `SNeg+`, and `SPos+`. |
-| `sum_threat` | Total count of the four face-threatening (`-`) labels: `HNeg-`, `HPos-`, `SNeg-`, and `SPos-`. |
+| `sum_praise` | Total count of the four face-saving labels marked `+`. |
+| `sum_threat` | Total count of the four face-threatening labels marked `-`. |
 
-`Neutral` has its own count and contributes to none of the four aggregates. The script standardizes all 13 features using means and standard deviations computed on the training partition and applies the same transformation to validation and test emails.
+`Neutral` contributes only to its own count. All 13 features are standardized using means and standard deviations computed on the training partition. The same transformation is applied to validation and test emails.
 
 ## Datasets
 
-The script uses:
+The script uses these files:
 
 - `data/corpus/email_text_gold_three_dimensions_politeness_score_with_seed_correct.csv`
 - `data/corpus/sentences_with_golden_face_act.csv`
 
-The group-based split uses the original email generation seed to keep related emails in the same partition. The target proportions are 70% training, 15% validation, and 15% test. The split random state is `42`.
+The split groups emails by their original generation seed, keeping related emails in the same partition. The target proportions are 70% training, 15% validation, and 15% test. The split random state is `42`.
 
-The five training seeds are `13`, `21`, `42`, `87`, and `100`. All runs use the same document split. For experiments using PredFA, each OPR run uses the FAC checkpoint from the matching training seed.
+All experiments use this fixed split across five training seeds: `13`, `21`, `42`, `87`, and `100`. Each PredFA experiment uses the FAC checkpoint from the corresponding OPR training seed.
 
 ## Training and Evaluation
 
-The regressors use Smooth L1 (Huber) loss. The Text and Text + PredFA families use `bert-base-uncased` as the text encoder.
-
-### Hyperparameter grids
+The regressors use Smooth L1 (Huber) loss.
 
 | Hyperparameter | Text and Text + PredFA | PredFA-only MLP |
 |---|---|---|
@@ -74,23 +67,21 @@ The regressors use Smooth L1 (Huber) loss. The Text and Text + PredFA families u
 | Weight decay | `0.01` | `1e-4` |
 | Hidden dimension | `128` | `128`, `256` |
 
-### Model selection and evaluation
+For each model family, hyperparameter selection uses validation Spearman’s rank correlation averaged across the three politeness dimensions.
 
-For multi-task training, checkpoint selection uses validation Spearman’s correlation averaged across the three dimensions. For single-task training, each predictor is selected using validation Spearman’s correlation for its own dimension. Within each model family and training mode, the best hyperparameter configuration is selected by macro-averaged validation Spearman’s correlation.
-
-On the fixed test partition, we report mean absolute error (MAE) and Spearman’s rank correlation (ρ) separately for each dimension. Macro-MAE and macro-ρ are the averages of the three corresponding per-dimension metrics. The paper summarizes performance as mean ± standard error across five training seeds.
+On the fixed test partition, we report mean absolute error (MAE) and Spearman’s rank correlation (ρ) for each dimension. Macro-MAE and macro-ρ are the averages of the three corresponding per-dimension metrics. The paper reports means and standard errors across the five training seeds.
 
 ## Requirements
 
-The implementation requires Python and compatible versions of PyTorch, Transformers, NumPy, pandas, SciPy, and scikit-learn. The text-based models also require access to `bert-base-uncased`.
+The script uses Python, PyTorch, Transformers, NumPy, pandas, SciPy, and scikit-learn. The text-based models require access to `bert-base-uncased`.
 
 ## Running the Experiments
 
 Run all commands from the repository root. The examples use Linux or macOS shell syntax.
 
-### 1. BERT Text-only
+### BERT Text-only
 
-The text-only baseline can run independently of the FAC checkpoints.
+The text-only baseline uses the email text and can run independently of the FAC checkpoints.
 
 ```bash
 OPR_RUN_SEED=42 \
@@ -101,9 +92,9 @@ RUN_BERT_PLUS_PREDFA=0 \
 python opr/bert/OPR_BERT_PredFA_gridsearch.py
 ```
 
-### 2. PredFA-only and BERT + PredFA
+### PredFA-only and BERT + PredFA
 
-Train the sentence-only BERT FAC classifier using the script in `fac/bert/`. Set `ASL_MODEL_DIR` to the resulting checkpoint directory for the corresponding training seed.
+Set `ASL_MODEL_DIR` to the checkpoint produced by the sentence-only BERT FAC classifier in `fac/bert/` for the corresponding training seed.
 
 ```bash
 ASL_MODEL_DIR="/path/to/bert_fac_checkpoint" \
@@ -118,33 +109,22 @@ python opr/bert/OPR_BERT_PredFA_gridsearch.py
 
 `ASL_MODEL_DIR` selects the checkpoint to load. `FAC_RUN_SEED` records its training seed in the run metadata.
 
-### 3. Multi-seed evaluation
+### Running all five seeds
 
-Repeat the relevant command for training seeds `13`, `21`, `42`, `87`, and `100`, keeping `SPLIT_RANDOM_STATE=42`. For text-only runs, vary `OPR_RUN_SEED`. For PredFA runs, also set `FAC_RUN_SEED` and `ASL_MODEL_DIR` to the matching FAC seed and checkpoint. Use a separate `OUT_DIR` under `outputs/` for each run to preserve its results.
-
-### 4. Multi-task and single-task regression
-
-Both modes are enabled by default. To run only one mode, add the following flags to the command before `python`:
-
-| Training mode | Flags |
-|---|---|
-| Multi-task only | `DO_MULTI_TASK=1 DO_SINGLE_TASK=0` |
-| Single-task only | `DO_MULTI_TASK=0 DO_SINGLE_TASK=1` |
+Repeat the relevant command for seeds `13`, `21`, `42`, `87`, and `100`, keeping `SPLIT_RANDOM_STATE=42`. For text-only runs, vary `OPR_RUN_SEED`. For PredFA runs, also set `FAC_RUN_SEED` and `ASL_MODEL_DIR` to the matching seed and checkpoint. Use a separate `OUT_DIR` under `outputs/` for each run to preserve its results.
 
 ## Outputs
 
-The script writes experimental outputs under `outputs/`. Summary files include:
+The script writes experimental results under `outputs/`.
 
 | File | Contents |
 |---|---|
 | `opr_grid_search_results.csv` | Results for the evaluated hyperparameter configurations. |
-| `opr_best_by_family.csv` | Validation-selected configuration and associated metrics for each model family and training mode. |
-| `split_info.json` | Data split and training-run metadata. |
+| `opr_best_by_family.csv` | Validation-selected configurations and associated metrics. |
+| `split_info.json` | Data split and run metadata. |
 
-Run outputs include validation and test metrics and predicted politeness scores. Runs using PredFA also save the sentence-level FA probabilities, validation threshold information, and document-level feature standardization parameters.
-
-The root `.gitignore` excludes `outputs/`. Generated results and trained checkpoints are not included in the repository.
+Run outputs include validation and test metrics and predicted politeness scores. PredFA runs also save sentence-level FA probabilities, the selected FAC threshold, and the document-level feature standardization parameters.
 
 ## Reproducibility
 
-Supplementary Appendix F, Table II, lists the hyperparameter search grids used in the extended study. This implementation provides the BERT OPR experiments used in the journal manuscript’s comparison of BERT and LLaMA.
+Supplementary Appendix F, Table II, lists the hyperparameter search grids used in the extended study.
