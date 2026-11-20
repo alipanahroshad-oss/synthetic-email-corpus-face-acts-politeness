@@ -37,7 +37,7 @@ We compare BERT with a LoRA-adapted LLaMA 3.2-1B across five configurations:
 
 | Modelling approach | Context |
 |---|---|
-| Sentence classification | Target no-context |
+| Sentence classification | no-context |
 | Contextual sentence classification | Current-email (Mail) |
 | Contextual sentence classification | Paired-email history (Pair) |
 | Sequence labelling | Current-email (Mail) |
