@@ -1,10 +1,14 @@
 # LLaMA — Overall Politeness Regression (OPR)
 
-This directory contains the LLaMA implementation for document-level Overall Politeness Regression (OPR) in **A Synthetic Email Corpus Annotated with Brown and Levinson's Face Acts and Document-Level Politeness**.
+This directory contains the LLaMA implementation for document-level Overall Politeness Regression (OPR) in the extended study **A Synthetic Email Corpus Annotated with Brown and Levinson's Face Acts and Document-Level Politeness**.
 
 ## Overview
 
-We investigate whether predicted sentence-level Face Acts (PredFA) complement email text when predicting document-level politeness. The experiments use three human-annotated politeness dimensions.
+We investigate whether representations derived from predicted sentence-level Face Acts (PredFA) complement document-level text representations for politeness prediction.
+
+### Politeness Dimensions and Dataset Columns
+
+The models predict three continuous politeness scores for each email.
 
 | Politeness dimension | Dataset column |
 |---|---|
@@ -12,90 +16,104 @@ We investigate whether predicted sentence-level Face Acts (PredFA) complement em
 | Positive Face Saving | `Structural_Politeness_and_Politeness_Markers__GOLD` |
 | Negative Face Saving | `Tone_and_Overall_Consideration__GOLD` |
 
-## Model Configurations
+## Implementation
 
-The script `opr/llama/OPR_LLAMA_PredFA_gridsearch.py` implements three model families.
+**Script:** `OPR_LLAMA_PredFA_gridsearch.py`
 
-| Model | Input and architecture |
+| Model | Description |
 |---|---|
-| LLaMA Text-only | Encodes the email with `meta-llama/Llama-3.2-1B` adapted using LoRA. A regression head uses the last-token representation to predict politeness scores. |
-| PredFA-only | Uses a multilayer perceptron (MLP) to predict politeness scores from 13 document-level PredFA features. |
-| LLaMA + PredFA | Concatenates the LLaMA document representation with the 13 PredFA features and passes the combined representation to an MLP regression head. |
+| LLaMA Text-only | Predicts politeness scores from email text using the last-token representation of the LLaMA encoder. |
+| PredFA-only | Predicts politeness scores from aggregated Face Act features using a multilayer perceptron (MLP). |
+| LLaMA + PredFA | Concatenates the LLaMA document representation with the PredFA features and passes the combined representation to an MLP regression head. |
 
 ## Predicted Face Act Features
 
-A sentence-only LLaMA Face Act classifier supplies the predictions used to construct the document-level features. A single threshold shared across the nine FA labels converts sentence-level probabilities into label assignments. The threshold is selected by maximizing micro-F1 on the FAC validation set.
+The PredFA features come from a trained sentence-only LLaMA Face Act classifier. A single decision threshold shared across all nine labels is selected by maximizing FAC validation micro-F1. The classifier uses this threshold to assign one or more FA labels to a sentence.
 
-For each email, the script counts assignments of each of the nine labels and computes four additional features, giving 13 features in total (HSPT-13). A sentence can contribute to more than one label count.
+### Nine Face Act Features
 
-| Feature | Labels included in the sum |
-|---|---|
-| Hearer | `HNeg+`, `HNeg-`, `HPos+`, `HPos-` |
-| Speaker | `SNeg+`, `SNeg-`, `SPos+`, `SPos-` |
-| Praise (face-saving acts) | `HNeg+`, `HPos+`, `SNeg+`, `SPos+` |
-| Threat (face-threatening acts) | `HNeg-`, `HPos-`, `SNeg-`, `SPos-` |
+For each email, the script counts the sentence-level assignments of each FA label:
 
-`Neutral` has its own label count. The script standardizes the 13 features using statistics from the training partition and applies the same transformation to validation and test emails.
+`HNeg+`, `HNeg-`, `HPos+`, `HPos-`, `Neutral`, `SNeg+`, `SNeg-`, `SPos+`, `SPos-`
 
-## Data and Training Seeds
+### Four Additional Features
 
-The script uses two dataset files:
+The script derives four aggregate features from the label counts:
+
+- **H.** Sum of the four hearer-oriented FA counts.
+- **S.** Sum of the four speaker-oriented FA counts.
+- **Praise.** Sum of the four face-saving (`+`) FA counts.
+- **Threat.** Sum of the four face-threatening (`-`) FA counts.
+
+Together, the nine label counts and four aggregate features form the 13-dimensional HSPT-13 representation. The script standardizes these features using training-partition statistics and applies the same transformation to the validation and test partitions.
+
+## Datasets
+
+The script uses the following files:
 
 - `data/corpus/email_text_gold_three_dimensions_politeness_score_with_seed_correct.csv`
 - `data/corpus/sentences_with_golden_face_act.csv`
 
-Emails derived from the same original generation seed are assigned to the same partition. The target split proportions are 70% training, 15% validation, and 15% test. The split random state is `42`.
+The document-level split groups emails by their original generation seed. All emails derived from the same seed belong to the same partition.
 
-All experiments use the same partition across five training seeds: `13`, `21`, `42`, `87`, and `100`. For configurations that use PredFA, each OPR run uses the FAC adapter with the matching training seed.
+- Target partition sizes: 70% training, 15% validation, and 15% test
+- Split random state: `42`
+- Training seeds: `13`, `21`, `42`, `87`, `100`
 
-## Training Configuration
+All five training runs use the same document-level split.
+
+## Training and Evaluation
 
 ### LLaMA Regressor
 
-The text-based models use `meta-llama/Llama-3.2-1B` with LoRA and Smooth L1 loss. The reported OPR configuration applies LoRA to the attention projections `q_proj`, `k_proj`, `v_proj`, and `o_proj`. The script also supports adding `gate_proj`, `up_proj`, and `down_proj`.
+**Backbone:** `meta-llama/Llama-3.2-1B`  
+**Adaptation:** Low-Rank Adaptation (LoRA) on `q_proj`, `k_proj`, `v_proj`, and `o_proj`  
+**Loss:** Smooth L1 loss
 
-| Hyperparameter | Extended search settings |
-|---|---|
-| Learning rate | `2e-4` |
-| Epochs | `5`, `8`, `12` |
-| LoRA rank | `8`, `16`, `32` |
-| LoRA alpha | `2 × rank` |
-| LoRA dropout | `0.05` |
-| Batch size | `4` |
-| Regression-head dropout | `0.1` |
-| Weight decay | `0.01` |
-| Hidden dimension | `128` |
+The extended hyperparameter grid uses:
 
-Crossing three epoch settings with three LoRA ranks gives nine configurations per training seed. The commands below enable this grid with `EXTENDED_LORA=1` and `EXTLORA_LRS=2e-4`.
+- Learning rate: `2e-4`
+- Epochs: `5`, `8`, `12`
+- LoRA rank: `8`, `16`, `32`
+- LoRA alpha: twice the rank
+- LoRA dropout: `0.05`
+- Batch size: `4`
+- Regression-head dropout: `0.1`
+- Weight decay: `0.01`
+- Hidden dimension: `128`
+
+The three epoch settings and three LoRA ranks give nine configurations per training seed. The commands below enable the extended grid with `EXTENDED_LORA=1` and `EXTLORA_LRS=2e-4`.
 
 ### PredFA-only MLP
 
-| Hyperparameter | Search settings |
-|---|---|
-| Learning rate | `1e-3`, `5e-4` |
-| Epochs | `40`, `60` |
-| Batch size | `16`, `32` |
-| Dropout | `0.1`, `0.2` |
-| Weight decay | `1e-4` |
-| Hidden dimension | `128`, `256` |
+The PredFA-only MLP uses the following hyperparameter grid:
 
-## Model Selection and Evaluation
+- Learning rate: `1e-3`, `5e-4`
+- Epochs: `40`, `60`
+- Batch size: `16`, `32`
+- Dropout: `0.1`, `0.2`
+- Weight decay: `1e-4`
+- Hidden dimension: `128`, `256`
 
-For each model family and training seed, we select the OPR configuration with the highest validation macro-Spearman’s ρ. This is the average of the three correlations computed separately for the politeness dimensions.
+### Evaluation Metrics
 
-On the fixed test set, we report mean absolute error (MAE) and Spearman’s ρ for each dimension. We compute macro-MAE and macro-Spearman’s ρ by averaging the corresponding per-dimension metrics. Lower MAE indicates smaller prediction errors, and higher ρ indicates closer agreement with the human ranking of emails.
+We report mean absolute error (MAE) and Spearman's rank correlation (ρ) separately for Directness vs. Indirectness, Positive Face Saving, and Negative Face Saving. For each metric, the macro-average is the mean of the three per-dimension values.
+
+For each model family and training seed, we select the configuration with the highest validation macro-Spearman's ρ and evaluate it on the fixed test set.
 
 ## Requirements
 
-The experiments use Python, PyTorch, Transformers, PEFT, NumPy, pandas, SciPy, and scikit-learn. Learning-curve plots use Matplotlib. To download `meta-llama/Llama-3.2-1B`, authenticate with a Hugging Face account that has access to the model.
+The experiments use Python, PyTorch, Transformers, PEFT, NumPy, pandas, SciPy, and scikit-learn. Learning-curve plots use Matplotlib.
+
+Downloading `meta-llama/Llama-3.2-1B` requires authentication with a Hugging Face account that has access to the model.
 
 ## Running the Experiments
 
-Run the following commands from the repository root using a Linux or macOS shell.
+Run the following commands from the repository root. The examples use Linux or macOS shell syntax.
 
 ### 1. LLaMA Text-only
 
-Run the extended search with training seed `42`:
+Run the text-only configuration with training seed `42`:
 
 ```bash
 EXTENDED_LORA=1 \
@@ -108,11 +126,13 @@ RUN_LLAMA_PLUS_PREDFA=0 \
 python opr/llama/OPR_LLAMA_PredFA_gridsearch.py
 ```
 
-This configuration can run independently of the FAC checkpoints.
+This configuration runs independently of the FAC checkpoints.
 
 ### 2. PredFA-only and LLaMA + PredFA
 
-These configurations use the trained sentence-only LLaMA FAC adapters from the experiments in `fac/llama/`. Supply a registry CSV mapping each FAC training seed to its adapter directory. Replace the example adapter paths with the directories containing your trained adapters.
+These configurations use sentence-only LLaMA FAC adapters trained with the scripts in `fac/llama/`. The OPR script uses `FAC_REGISTRY_CSV` to locate the adapter corresponding to `FAC_RUN_SEED`.
+
+Prepare a registry CSV with the following structure, replacing the example paths with the trained adapter directories:
 
 ```csv
 run_seed,adapter_dir
@@ -123,7 +143,7 @@ run_seed,adapter_dir
 100,/path/to/fac_adapter_seed100
 ```
 
-The following command reads the existing registry at `outputs/llama_lora_sentence_only_multiseed/llama_sentence_only_best_checkpoints.csv` and selects the adapter for seed `42`:
+Run both PredFA configurations with training seed `42`:
 
 ```bash
 EXTENDED_LORA=1 \
@@ -138,16 +158,26 @@ RUN_LLAMA_PLUS_PREDFA=1 \
 python opr/llama/OPR_LLAMA_PredFA_gridsearch.py
 ```
 
-### 3. Repeat Across Training Seeds
+### 3. Multi-seed Evaluation
 
-Use `13`, `21`, `42`, `87`, and `100` for `OPR_RUN_SEED`, keeping `SPLIT_RANDOM_STATE=42` in every run. For PredFA-based experiments, set `FAC_RUN_SEED` to the same value as `OPR_RUN_SEED`.
+Repeat the commands with `OPR_RUN_SEED` set to `13`, `21`, `42`, `87`, and `100`. Keep `SPLIT_RANDOM_STATE=42` for every run. For PredFA-only and LLaMA + PredFA, set `FAC_RUN_SEED` to the same value as `OPR_RUN_SEED`.
 
 ## Outputs
 
-The script writes results under `outputs/`. The main summary files are:
+The script writes experimental results under `outputs/`, including:
 
-- `opr_grid_search_results.csv` — validation and test metrics for the evaluated configurations.
-- `opr_best_by_family.csv` — the validation-selected configuration for each model family.
-- `split_info.json` — information about the document-level partition.
+- Hyperparameter grid-search results and the selected configuration for each model family
+- Validation and test metrics and predicted politeness scores
+- Data split information
+- Predicted Face Act probabilities, FAC threshold information, and feature-standardization parameters for PredFA-based runs
+- Learning-curve data and plots
 
-Run outputs also include predicted politeness scores and learning-curve data and plots. PredFA-based runs additionally record Face Act predictions, threshold information, and feature-standardization parameters.
+The main summary files are:
+
+- `opr_grid_search_results.csv`
+- `opr_best_by_family.csv`
+- `split_info.json`
+
+## Reproducibility
+
+To reproduce a reported run, use its training seed and the fixed document split. For PredFA-based runs, use the matching sentence-only FAC adapter, its validation-selected threshold, and the feature-standardization parameters computed on the training partition.
