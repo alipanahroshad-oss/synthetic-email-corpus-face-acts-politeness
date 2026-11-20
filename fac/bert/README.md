@@ -73,18 +73,9 @@ Each configuration searches 36 hyperparameter combinations per training seed.
 
 ## Model Selection and Evaluation
 
-Model selection uses validation micro-F1.
+For each checkpoint, we select a single decision threshold shared across all nine FA labels by maximizing validation micro-F1. We evaluate thresholds from 0.05 to 0.95 in steps of 0.01. We then evaluate the selected configuration and checkpoint on the fixed test set using the selected threshold.
 
-A global decision threshold is selected on the validation set from 0.05 to 0.95 in increments of 0.01.
-
-The selected configuration and threshold are then evaluated on the fixed test set.
-
-Evaluation includes:
-- Micro-F1
-- Micro-precision
-- Micro-recall
-- Class-wise performance
-- Request/reply performance
+We report micro-F1, micro-precision, and micro-recall overall and separately for request and reply sentences. The scripts also produce class-wise results.
 
 ## Running the Experiments
 
