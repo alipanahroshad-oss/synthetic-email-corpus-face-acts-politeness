@@ -37,11 +37,11 @@ We compare BERT with a LoRA-adapted LLaMA 3.2-1B across five configurations:
 
 | Modelling approach | Context |
 |---|---|
-| Sentence classification | Target sentence only |
-| Contextual sentence classification | Current-email history (Mail) |
+| Sentence classification | Target no-context |
+| Contextual sentence classification | Current-email (Mail) |
 | Contextual sentence classification | Paired-email history (Pair) |
-| Sequence labelling | Current email (Mail) |
-| Sequence labelling | Request–reply pair (Pair) |
+| Sequence labelling | Current-email (Mail) |
+| Sequence labelling | Paired-email history (Pair) |
 
 Contextual sentence classification predicts the FA labels of one target sentence at a time. In the Pair setting, reply targets also receive the initiating request. Sequence labelling encodes multiple sentences together and produces a separate FA prediction for each sentence.
 
